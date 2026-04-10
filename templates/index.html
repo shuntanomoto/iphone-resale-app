@@ -289,6 +289,134 @@
     footer { border-top: 1px solid var(--bd); padding: 16px 28px; text-align: center; font-size: 11px; color: var(--t3); }
     footer a { color: var(--blue); text-decoration: none; }
     footer a:hover { text-decoration: underline; }
+
+    /* ══ モバイル対応 (≤640px) ════════════════════════════════ */
+    @media (max-width: 640px) {
+      /* ナビ */
+      nav { padding: 0 14px; height: 48px; }
+      .nav-src { display: none; }
+      .nav-title { font-size: 14px; }
+      .upd-badge { padding: 4px 8px; font-size: 10px; }
+
+      /* バー類の余白を縮小 */
+      .tl-bar { padding: 0 14px; }
+      .tl-bar.open { padding: 10px 14px; }
+      .card-bar { padding: 8px 14px; }
+      .toolbar  { padding: 8px 14px; }
+
+      /* カードチップを横スクロール */
+      .card-inner { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px;
+                    -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+      .card-inner::-webkit-scrollbar { display: none; }
+      .card-chips { flex-wrap: nowrap; }
+
+      /* フィルタバーを縦積み */
+      .tb-inner { flex-direction: column; align-items: stretch; gap: 7px; }
+      .sw { width: 100%; }
+      .s-input { width: 100%; }
+      .s-input:focus { width: 100%; }
+      .sort-sel { width: 100%; }
+      .dv { display: none; }
+      .f-chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px;
+                 -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+      .f-chips::-webkit-scrollbar { display: none; }
+
+      /* メイン余白 */
+      main { padding: 12px 10px 56px; }
+
+      /* サマリー: 2列 */
+      .sum-grid { grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+      .sc { padding: 10px 12px; border-radius: 14px; }
+      .sc-ico { font-size: 16px; margin-bottom: 3px; }
+      .sc-val { font-size: 16px; }
+
+      /* セクションヘッダ */
+      .m-sec { margin-bottom: 16px; }
+      .m-name { font-size: 14px; }
+
+      /* ──────────────────────────────────────────────
+         テーブル → カードレイアウト
+         thead を非表示、各 tr をカード、td を行ラベル付きに
+      ────────────────────────────────────────────── */
+      .t-scrl { overflow-x: unset; }
+      table   { min-width: unset; width: 100%; font-size: 13px; }
+
+      thead   { display: none; }
+
+      tbody tr {
+        display: block;
+        padding: 0;
+        border-bottom: none;
+        margin-bottom: 0;
+      }
+      tbody tr:not(:last-child) { border-bottom: 1px solid var(--bd); }
+      tbody tr:hover { background: transparent; }
+
+      td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 14px;
+        border-bottom: none;
+        white-space: normal;
+        min-height: 44px;  /* タッチターゲット確保 */
+      }
+      td:first-child { padding-left: 14px; }
+
+      /* ラベル（data-label） */
+      td[data-label]::before {
+        content: attr(data-label);
+        font-size: 10px; font-weight: 600;
+        color: var(--t2); text-transform: uppercase;
+        letter-spacing: .06em; flex-shrink: 0;
+        min-width: 76px; margin-right: 8px;
+      }
+
+      /* 容量セル: カードヘッダとして全幅 */
+      td[data-label="容量"],
+      td[data-label="機種"] {
+        background: var(--bg);
+        font-size: 15px; font-weight: 700;
+        padding: 11px 14px;
+        justify-content: flex-start;
+        gap: 8px;
+        border-bottom: 1px solid var(--bd);
+      }
+      td[data-label="容量"]::before,
+      td[data-label="機種"]::before { display: none; }
+
+      /* 買取価格セル: 緑背景で目立たせる */
+      td[data-label="買取価格"] {
+        background: var(--green-l);
+      }
+      td[data-label="買取価格"] .td-buy { font-size: 16px; }
+
+      /* Apple直販セル: ボタンを折り返し */
+      td[data-label="Apple直販"] .apl-cell {
+        flex-wrap: wrap; justify-content: flex-end; gap: 5px;
+      }
+
+      /* 仕入れ価格: inputを広げる */
+      td[data-label="仕入れ価格"] .row-field { flex: 1; max-width: 180px; }
+      td[data-label="仕入れ価格"] .rf-inp.w-cost { width: 100%; flex: 1; }
+
+      /* 個数: inputを広げる */
+      td[data-label="個数"] .row-field { flex: 1; max-width: 100px; }
+      td[data-label="個数"] .rf-inp.w-qty { width: 100%; flex: 1; }
+
+      /* 利益・実質利益・合計 */
+      td[data-label="利益（1台）"] .pft-val,
+      td[data-label="実質利益"]   .bdg,
+      td[data-label="合計利益"]   .bdg { font-size: 15px; }
+      td[data-label="実質利益"]   .bdg,
+      td[data-label="合計利益"]   .bdg { padding: 5px 13px; }
+
+      /* ポイントセル: 横並びを維持 */
+      td[data-label="ポイント"] .pt-wrap { align-items: flex-end; }
+
+      /* フッター */
+      footer { padding: 14px 14px 24px; font-size: 10px; line-height: 1.7; }
+    }
   </style>
 </head>
 <body>
@@ -579,7 +707,7 @@ function renderFlat(flat) {
   let html=`<div class="t-card"><div class="t-scrl"><table>
     <thead><tr>${TH_FLAT}</tr></thead><tbody>`;
   flat.forEach(({m,mi,r,ri})=>{
-    html+=`<tr><td class="td-ser">${esc(m.name)}</td>${rowCells(mi,ri,r)}</tr>`;
+    html+=`<tr><td data-label="機種" class="td-ser">${esc(m.name)}</td>${rowCells(mi,ri,r)}</tr>`;
   });
   html+='</tbody></table></div></div>';
   document.getElementById('content').innerHTML=html;
@@ -596,12 +724,12 @@ function rowCells(mi, ri, r) {
   const c      = calc(buyback, cost, qty, activeCard);
 
   return `
-    <td>
+    <td data-label="容量">
       <div class="td-name">${esc(r.detail||'')}</div>
       ${r.color_note?`<div class="td-sub">${esc(r.color_note)}</div>`:''}
     </td>
-    <td id="buy-${key}" class="td-buy">¥${fmt(buyback)}</td>
-    <td class="td-apl">
+    <td data-label="買取価格" id="buy-${key}" class="td-buy">¥${fmt(buyback)}</td>
+    <td data-label="Apple直販" class="td-apl">
       ${apple
         ? `<div class="apl-cell">
              <span>¥${fmt(apple)}</span>
@@ -612,7 +740,7 @@ function rowCells(mi, ri, r) {
            </div>`
         : '—'}
     </td>
-    <td>
+    <td data-label="仕入れ価格">
       <div class="row-field">
         <span class="rf-pre">¥</span>
         <input type="number" class="rf-inp w-cost row-cost"
@@ -621,7 +749,7 @@ function rowCells(mi, ri, r) {
                step="500" oninput="onCost(this)">
       </div>
     </td>
-    <td>
+    <td data-label="個数">
       <div class="row-field">
         <span class="rf-pre">台</span>
         <input type="number" class="rf-inp w-qty row-qty"
@@ -630,10 +758,10 @@ function rowCells(mi, ri, r) {
                min="1" step="1" oninput="onQty(this)">
       </div>
     </td>
-    <td id="pft-${key}">${c?profHtml(c.profit):'<span class="ze">—</span>'}</td>
-    <td id="pt-${key}">${c?ptHtml(c.points):'<span class="ze">—</span>'}</td>
-    <td id="rl-${key}">${c?realHtml(c.real):'<span class="ze">—</span>'}</td>
-    <td id="tot-${key}">${c?totHtml(c.total,qty):'<span class="ze">—</span>'}</td>`;
+    <td data-label="利益（1台）" id="pft-${key}">${c?profHtml(c.profit):'<span class="ze">—</span>'}</td>
+    <td data-label="ポイント"   id="pt-${key}">${c?ptHtml(c.points):'<span class="ze">—</span>'}</td>
+    <td data-label="実質利益"   id="rl-${key}">${c?realHtml(c.real):'<span class="ze">—</span>'}</td>
+    <td data-label="合計利益"   id="tot-${key}">${c?totHtml(c.total,qty):'<span class="ze">—</span>'}</td>`;
 }
 
 function profHtml(v) {
