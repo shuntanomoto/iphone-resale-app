@@ -1,6 +1,6 @@
 import re
 import time
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, send_from_directory
 import requests
 from bs4 import BeautifulSoup
 
@@ -216,6 +216,16 @@ def scrape_mobilemix() -> dict:
 @app.route("/")
 def index():
     return render_template("index.html")
+
+
+@app.route("/sw.js")
+def service_worker():
+    """Service Worker をルートスコープで配信"""
+    resp = send_from_directory("static", "sw.js")
+    resp.headers["Content-Type"]          = "application/javascript"
+    resp.headers["Service-Worker-Allowed"] = "/"
+    resp.headers["Cache-Control"]          = "no-cache"
+    return resp
 
 
 @app.route("/api/prices")
