@@ -1,5 +1,6 @@
 import re
 import time
+from urllib.parse import urljoin
 from flask import Flask, render_template, jsonify, send_from_directory
 import requests
 from bs4 import BeautifulSoup
@@ -8,6 +9,15 @@ app = Flask(__name__)
 
 SOURCE_URL  = "https://mobile-mix.jp/"
 SOURCE_NAME = "モバイルミックス"
+
+# Apple Store Japan 購入ページURL（シリーズ名 → URL）
+APPLE_BUY_URLS: dict[str, str] = {
+    "iPhone 17 Pro Max": "https://www.apple.com/jp/shop/buy-iphone/iphone-17-pro",
+    "iPhone 17 Pro":     "https://www.apple.com/jp/shop/buy-iphone/iphone-17-pro",
+    "iPhone Air":        "https://www.apple.com/jp/shop/buy-iphone/iphone-air",
+    "iPhone 17":         "https://www.apple.com/jp/shop/buy-iphone/iphone-17",
+    "iPhone 17e":        "https://www.apple.com/jp/shop/buy-iphone/iphone-17e",
+}
 
 # Apple Store Japan スクレイピング対象ページ
 # (URL, ラベル) — "pro_page" は Pro Max / Pro 両方含むため href で判別
@@ -177,13 +187,21 @@ def scrape_mobilemix() -> dict:
         if not price:
             continue
 
-        # 続く偶数行（カラー備考・開封状態）
+        # 続く偶数行（カラー備考・開封状態・カートリンク）
         color_note = ""
+        cart_url   = ""
         next_row = row.find_next_sibling("tr")
         if next_row and not next_row.get("id"):
             cells = next_row.find_all("td")
             if len(cells) >= 2:
                 color_note = cells[1].get_text(strip=True)
+            # カートリンクを td.cart > a から取得
+            cart_td = next_row.find("td", class_="cart")
+            if cart_td:
+                a = cart_td.find("a", href=True)
+                if a:
+                    href = a["href"].strip()
+                    cart_url = href if href.startswith("http") else urljoin(SOURCE_URL, href)
 
         series, storage = parse_series(model_full)
 
@@ -191,8 +209,9 @@ def scrape_mobilemix() -> dict:
             series_map[series] = []
             series_order.append(series)
 
-        apple_prices = scrape_apple_prices()
-        apple_price  = apple_prices.get(f"{series}|{storage}")
+        apple_prices  = scrape_apple_prices()
+        apple_price   = apple_prices.get(f"{series}|{storage}")
+        apple_buy_url = APPLE_BUY_URLS.get(series, "")
 
         series_map[series].append({
             "detail":         storage or model_full,
@@ -200,6 +219,8 @@ def scrape_mobilemix() -> dict:
             "prices":         {"買取価格": price},
             "representative": price,
             "apple_price":    apple_price,
+            "apple_buy_url":  apple_buy_url,
+            "cart_url":       cart_url,
         })
 
     for series in series_order:

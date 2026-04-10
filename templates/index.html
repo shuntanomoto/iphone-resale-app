@@ -289,7 +289,7 @@
     .pt-rate  { font-size: 10px; color: var(--t3); }
 
     /* Apple直販「仕入れに適用」ボタン */
-    .apl-cell { display: flex; align-items: center; gap: 7px; }
+    .apl-cell { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
     .btn-apply {
       display: inline-flex; align-items: center; gap: 3px;
       padding: 3px 9px; border-radius: 980px; border: 1.5px solid var(--blue);
@@ -300,6 +300,23 @@
     }
     .btn-apply:hover  { background: var(--blue); color: #fff; }
     .btn-apply:active { transform: scale(.95); }
+
+    /* 購入・売却アクションボタン */
+    .act-wrap { display: flex; flex-direction: column; gap: 5px; }
+    .btn-act {
+      display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+      padding: 5px 12px; border-radius: 980px; border: none;
+      font-size: 12px; font-weight: 600; font-family: inherit;
+      text-decoration: none; white-space: nowrap; cursor: pointer;
+      transition: all .13s; line-height: 1;
+    }
+    .btn-act:active { transform: scale(.96); }
+    .btn-buy  { background: var(--blue);  color: #fff; }
+    .btn-buy:hover  { background: #0077ed; }
+    .btn-sell { background: var(--green); color: #fff; }
+    .btn-sell:hover { background: #28a745; }
+    .btn-act-dis { background: var(--bg); color: var(--t3);
+                   border: 1.5px solid var(--bd); cursor: default; }
 
     /* 実質利益・合計バッジ */
     .bdg {
@@ -439,6 +456,14 @@
 
       /* ポイントセル: 横並びを維持 */
       td[data-label="ポイント"] .pt-wrap { align-items: flex-end; }
+
+      /* アクションセル: ボタンを横並びに */
+      td[data-label="アクション"] { border-top: 1px solid var(--bd); padding-top: 12px; }
+      td[data-label="アクション"]::before { display: none; }
+      td[data-label="アクション"] .act-wrap {
+        flex-direction: row; gap: 8px; width: 100%;
+      }
+      td[data-label="アクション"] .btn-act { flex: 1; justify-content: center; padding: 9px 0; font-size: 13px; }
 
       /* フッター */
       footer { padding: 14px 14px 24px; font-size: 10px; line-height: 1.7; }
@@ -722,7 +747,7 @@ function filterRender() {
   updateSummary();
 }
 
-const TH_NORMAL = `<th>容量</th><th>買取価格</th><th>Apple直販</th><th>仕入れ価格</th><th>個数</th><th>利益（1台）</th><th>ポイント還元</th><th>実質利益（1台）</th><th>合計利益</th>`;
+const TH_NORMAL = `<th>容量</th><th>買取価格</th><th>Apple直販</th><th>仕入れ価格</th><th>個数</th><th>利益（1台）</th><th>ポイント還元</th><th>実質利益（1台）</th><th>合計利益</th><th>アクション</th>`;
 const TH_FLAT   = `<th>機種</th>${TH_NORMAL}`;
 
 function renderSections(models) {
@@ -756,12 +781,21 @@ function renderFlat(flat) {
 }
 
 function rowCells(mi, ri, r) {
-  const key    = `${mi}-${ri}`;
-  const buyback= r.representative||0;
-  const apple  = r.apple_price;
-  const cost   = getC(key);
-  const qty    = getQ(key);
-  const c      = calc(buyback, cost, qty, activeCard);
+  const key        = `${mi}-${ri}`;
+  const buyback    = r.representative||0;
+  const apple      = r.apple_price;
+  const applyBuyUrl= r.apple_buy_url||'';
+  const cartUrl    = r.cart_url||'';
+  const cost       = getC(key);
+  const qty        = getQ(key);
+  const c          = calc(buyback, cost, qty, activeCard);
+
+  const buyBtn  = applyBuyUrl
+    ? `<a class="btn-act btn-buy"  href="${esc(applyBuyUrl)}" target="_blank" rel="noopener">🛒 購入</a>`
+    : `<span class="btn-act btn-act-dis">🛒 購入</span>`;
+  const sellBtn = cartUrl
+    ? `<a class="btn-act btn-sell" href="${esc(cartUrl)}"    target="_blank" rel="noopener">💰 売却申込</a>`
+    : `<span class="btn-act btn-act-dis">💰 売却申込</span>`;
 
   return `
     <td data-label="容量">
@@ -801,7 +835,10 @@ function rowCells(mi, ri, r) {
     <td data-label="利益（1台）" id="pft-${key}">${c?profHtml(c.profit):'<span class="ze">—</span>'}</td>
     <td data-label="ポイント"   id="pt-${key}">${c?ptHtml(c.points):'<span class="ze">—</span>'}</td>
     <td data-label="実質利益"   id="rl-${key}">${c?realHtml(c.real):'<span class="ze">—</span>'}</td>
-    <td data-label="合計利益"   id="tot-${key}">${c?totHtml(c.total,qty):'<span class="ze">—</span>'}</td>`;
+    <td data-label="合計利益"   id="tot-${key}">${c?totHtml(c.total,qty):'<span class="ze">—</span>'}</td>
+    <td data-label="アクション">
+      <div class="act-wrap">${buyBtn}${sellBtn}</div>
+    </td>`;
 }
 
 function profHtml(v) {
