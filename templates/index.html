@@ -262,6 +262,19 @@
     .pt-amt   { font-size: 13px; font-weight: 600; color: var(--blue); }
     .pt-rate  { font-size: 10px; color: var(--t3); }
 
+    /* Apple直販「仕入れに適用」ボタン */
+    .apl-cell { display: flex; align-items: center; gap: 7px; }
+    .btn-apply {
+      display: inline-flex; align-items: center; gap: 3px;
+      padding: 3px 9px; border-radius: 980px; border: 1.5px solid var(--blue);
+      background: transparent; color: var(--blue);
+      font-size: 11px; font-weight: 600; font-family: inherit;
+      cursor: pointer; white-space: nowrap; transition: all .13s;
+      flex-shrink: 0;
+    }
+    .btn-apply:hover  { background: var(--blue); color: #fff; }
+    .btn-apply:active { transform: scale(.95); }
+
     /* 実質利益・合計バッジ */
     .bdg {
       display: inline-flex; align-items: center;
@@ -588,7 +601,17 @@ function rowCells(mi, ri, r) {
       ${r.color_note?`<div class="td-sub">${esc(r.color_note)}</div>`:''}
     </td>
     <td id="buy-${key}" class="td-buy">¥${fmt(buyback)}</td>
-    <td class="td-apl">${apple?'¥'+fmt(apple):'—'}</td>
+    <td class="td-apl">
+      ${apple
+        ? `<div class="apl-cell">
+             <span>¥${fmt(apple)}</span>
+             <button class="btn-apply"
+               onclick="applyApple('${key}',${apple},${buyback})">
+               ↘ 仕入れに適用
+             </button>
+           </div>`
+        : '—'}
+    </td>
     <td>
       <div class="row-field">
         <span class="rf-pre">¥</span>
@@ -643,6 +666,16 @@ function totHtml(v, qty) {
 // ══ 入力ヘルパー ════════════════════════════════════════════
 function getC(key){return rowCosts[key]!==undefined?rowCosts[key]:null;}
 function getQ(key){return rowQtys[key]!==undefined&&rowQtys[key]>=1?rowQtys[key]:1;}
+
+// Apple直販価格を仕入れ価格に適用
+function applyApple(key, apple, buyback) {
+  rowCosts[key] = apple;
+  // 対応する仕入れ価格inputに値を反映
+  const inp = document.querySelector(`.row-cost[data-key="${key}"]`);
+  if (inp) inp.value = apple;
+  refreshRow(key, String(buyback));
+  updateSummary();
+}
 
 function onCost(el) {
   const v=parseInt(el.value);
