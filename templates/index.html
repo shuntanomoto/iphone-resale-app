@@ -462,10 +462,22 @@
       td[data-label="ポイント"] .pt-wrap { align-items: flex-end; }
 
       /* 合計利益＋アクションボタン: スマホでは縦積みで全幅 */
-      td[data-label="合計利益"] .act-wrap {
-        flex-direction: row; gap: 8px; margin-top: 8px;
+      td[data-label="合計利益"] {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
       }
-      td[data-label="合計利益"] .btn-act { flex: 1; padding: 9px 0; font-size: 13px; }
+      td[data-label="合計利益"]::before {
+        min-width: unset;
+        margin-right: 0;
+        margin-bottom: 2px;
+      }
+      td[data-label="合計利益"] .act-wrap {
+        flex-direction: row; gap: 8px; margin-top: 4px; width: 100%;
+      }
+      td[data-label="合計利益"] .btn-act {
+        flex: 1; padding: 10px 0; font-size: 13px; justify-content: center;
+      }
 
       /* フッター */
       footer { padding: 14px 14px 24px; font-size: 10px; line-height: 1.7; }
