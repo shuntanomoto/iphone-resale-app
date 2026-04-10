@@ -9,24 +9,16 @@ app = Flask(__name__)
 SOURCE_URL  = "https://mobile-mix.jp/"
 SOURCE_NAME = "モバイルミックス"
 
-# Apple Store Japan 公式新品価格（円・税込・SIMフリー）
-# キー: "シリーズ名|容量"
-APPLE_PRICES: dict[str, int] = {
-    "iPhone 17 Pro Max|256GB": 194800,
-    "iPhone 17 Pro Max|512GB": 229800,
-    "iPhone 17 Pro Max|1TB":   264800,
-    "iPhone 17 Pro Max|2TB":   329800,
-    "iPhone 17 Pro|256GB":     179800,
-    "iPhone 17 Pro|512GB":     214800,
-    "iPhone 17 Pro|1TB":       249800,
-    "iPhone Air|256GB":        159800,
-    "iPhone Air|512GB":        194800,
-    "iPhone Air|1TB":          229800,
-    "iPhone 17|256GB":         129800,
-    "iPhone 17|512GB":         164800,
-    "iPhone 17e|256GB":         99800,
-    "iPhone 17e|512GB":        134800,
-}
+# Apple Store Japan スクレイピング対象ページ
+# (URL, ラベル) — "pro_page" は Pro Max / Pro 両方含むため href で判別
+APPLE_PAGES = [
+    ("https://www.apple.com/jp/shop/buy-iphone/iphone-17-pro", "pro_page"),
+    ("https://www.apple.com/jp/shop/buy-iphone/iphone-air",    "iPhone Air"),
+    ("https://www.apple.com/jp/shop/buy-iphone/iphone-17",     "iPhone 17"),
+    ("https://www.apple.com/jp/shop/buy-iphone/iphone-17e",    "iPhone 17e"),
+]
+
+_apple_cache: dict = {"data": {}, "fetched_at": 0, "ttl": 3600}  # 1時間キャッシュ
 
 HEADERS = {
     "User-Agent": (
@@ -39,6 +31,84 @@ HEADERS = {
 }
 
 _cache = {"data": None, "fetched_at": 0, "ttl": 600}  # 10分キャッシュ
+
+
+def scrape_apple_prices() -> dict[str, int]:
+    """
+    Apple Store Japan から各モデルの公式新品価格（税込）をスクレイピング。
+    戻り値キー: "シリーズ名|容量"  例: "iPhone 17 Pro Max|256GB" → 194800
+
+    各ページの div.equalize-capacity-button-height 内に
+      <a href="...6.9インチ..."> (Pro Max) / <a href="...6.3インチ..."> (Pro)
+      <span class="current_price">¥194,800</span>
+    という構造が存在する（2025年以降の Apple Store JP 共通構造）。
+    """
+    now = time.time()
+    if _apple_cache["data"] and (now - _apple_cache["fetched_at"]) < _apple_cache["ttl"]:
+        return _apple_cache["data"]
+
+    prices: dict[str, int] = {}
+
+    for url, label in APPLE_PAGES:
+        try:
+            resp = requests.get(url, headers=HEADERS, timeout=15)
+            resp.raise_for_status()
+            resp.encoding = resp.apparent_encoding
+            soup = BeautifulSoup(resp.text, "lxml")
+
+            items = soup.find_all(
+                "div",
+                class_=lambda c: c and "equalize-capacity-button-height" in c
+            )
+
+            for item in items:
+                # --- 容量 ---
+                text = item.get_text(" ", strip=True)
+                m_cap = re.search(r"(\d+\s*(?:GB|TB))", text, re.IGNORECASE)
+                if not m_cap:
+                    continue
+                storage = m_cap.group(1).replace(" ", "").upper()
+
+                # --- 価格 ---
+                price_el = (
+                    item.find("span", class_="current_price")
+                    or item.find("span", class_=lambda c: c and "price" in c)
+                )
+                if not price_el:
+                    continue
+                price_str = re.sub(r"[^\d]", "", price_el.get_text(strip=True))
+                if not price_str:
+                    continue
+                price = int(price_str)
+
+                # --- シリーズ名 ---
+                if label == "pro_page":
+                    a_tag = item.find("a")
+                    href  = a_tag.get("href", "") if a_tag else ""
+                    # href に 6.9 (= 6.9インチ = Pro Max) か 6.3 (= Pro) が入る
+                    if "6.9" in href:
+                        series = "iPhone 17 Pro Max"
+                    elif "6.3" in href:
+                        series = "iPhone 17 Pro"
+                    else:
+                        # href が取れない場合は Pro Max / Pro を容量で推定
+                        # 2TB は Pro Max のみ
+                        series = "iPhone 17 Pro Max" if storage == "2TB" else "iPhone 17 Pro"
+                else:
+                    series = label
+
+                key = f"{series}|{storage}"
+                prices[key] = price
+
+        except Exception:
+            # ページ取得失敗時はそのモデルはスキップ（既存キャッシュがあれば使い続ける）
+            pass
+
+    if prices:
+        _apple_cache["data"]       = prices
+        _apple_cache["fetched_at"] = now
+
+    return _apple_cache["data"] or prices
 
 
 def parse_price(text: str) -> int | None:
@@ -121,7 +191,8 @@ def scrape_mobilemix() -> dict:
             series_map[series] = []
             series_order.append(series)
 
-        apple_price = APPLE_PRICES.get(f"{series}|{storage}")
+        apple_prices = scrape_apple_prices()
+        apple_price  = apple_prices.get(f"{series}|{storage}")
 
         series_map[series].append({
             "detail":         storage or model_full,
@@ -157,7 +228,8 @@ def api_prices():
 
 @app.route("/api/refresh", methods=["POST"])
 def api_refresh():
-    _cache["fetched_at"] = 0
+    _cache["fetched_at"]       = 0
+    _apple_cache["fetched_at"] = 0   # Apple価格も強制再取得
     try:
         return jsonify({"ok": True, "data": scrape_mobilemix()})
     except Exception as e:
